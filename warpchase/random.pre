@@ -1,0 +1,25 @@
+# Author     : Hugo Simoes (https://github.com/simoesh)
+# Application: WarpChase (https://prequel-lang.org/examples/warpchase/)
+# Description:
+#   Random bot that continuously
+#     waits at most a second before
+#     moving forward for a few seconds.
+
+IF action IS UNDEFINED
+  action := 1
+  until_tick := TICKS.CURRENT
+ENDIF
+IF TICKS.CURRENT >= until_tick
+  IF action = 1
+    r :~ 1*TICKS.PER_SECOND
+  ELSE
+    r :~ 9*TICKS.PER_SECOND
+    r += 1*TICKS.PER_SECOND
+  ENDIF
+  action := -1*(action-1)
+  until_tick := TICKS.CURRENT+r+1
+ENDIF
+IF action = 1
+  WARPCHASE.ACTIVATE()
+ENDIF
+WARPCHASE.DEACTIVATE()
