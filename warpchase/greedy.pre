@@ -1,0 +1,13 @@
+# Author     : Hugo Simoes (https://github.com/simoesh)
+# Application: WarpChase (https://prequel-lang.org/examples/warpchase/)
+# Description:
+#   Simple bot with a greedy strategy.
+#   Moves towards the nearest Point.
+
+IF INDEXES.POINTS.LENGTH > 0
+  oneRad := FXP.PI2/360
+  IF BEARING.POINT[INDEXES.POINTS[0]] <= 15*oneRad
+    WARPCHASE.ACTIVATE()
+  ENDIF
+ENDIF
+WARPCHASE.DEACTIVATE()
