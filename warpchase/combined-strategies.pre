@@ -1,0 +1,109 @@
+# Author     : Hugo Simoes (https://github.com/simoesh)
+# Application: WarpChase (https://prequel-lang.org/examples/warpchase/)
+# Description:
+#   Prequel bot that uses a combination of simple strategies.
+#   The purpose of this bot is to exemplify more complex patterns and modules.
+
+oneRad := FXP.PI2/360
+MODULE.CALL(@PowerSeeker)
+predatorIndex := MODULE.CALL(@GetNearestPredatorIndex)
+IF predatorIndex >= 0 AND (DISTANCE_R.PLAYER[predatorIndex] <= WARP.MIN/2 OR BEARING.PLAYER.PLAYER[predatorIndex][MY.INDEX] <= 15*oneRad)
+  MODULE.CALL(@RunAway, predatorIndex)
+ENDIF
+MODULE.CALL(@Predator, PLAYERS.SCORE[MY.INDEX])
+IF PLAYERS.SCORE[MY.INDEX] > 0
+  MODULE.CALL(@RunAway, predatorIndex)
+ENDIF
+MODULE.CALL(@Greedy)
+WARPCHASE.DEACTIVATE()
+
+@PowerSeeker:
+IF INDEXES.POWERS.LENGTH > 0
+  oneRad := FXP.PI2/360
+  IF BEARING.POWER[INDEXES.POWERS[0]] <= 15*oneRad
+    WARPCHASE.ACTIVATE()
+  ENDIF
+ENDIF
+MODULE.RETURN()
+
+@GetNearestPredatorIndex:
+predatorIndex := -1
+r := INDEXES.PLAYERS.OTHERS.LENGTH
+l := r
+REPEAT r
+  pidx := INDEXES.PLAYERS.OTHERS[l-r-1]
+  IF PLAYERS.REMAINING_POWER[pidx] > 0
+    predatorIndex := pidx
+    REPSTOP
+  ENDIF
+ENDREP
+MODULE.RETURN(predatorIndex)
+
+@RunAway:
+predatorIndex := MODULE.CALL.ARGS[0]
+IF predatorIndex >= 0
+  oneRad := FXP.PI2/360
+  IF BEARING.PLAYER[predatorIndex] >= 90*oneRad AND BEARING.PLAYER[predatorIndex] <= 135*oneRad
+    WARPCHASE.ACTIVATE()
+  ENDIF
+ENDIF
+MODULE.RETURN()
+
+@Predator:
+IF PLAYERS.REMAINING_POWER[MY.INDEX] > 0
+  score := MODULE.CALL.ARGS[0]
+  preyIndex := -1
+  r := INDEXES.PLAYERS.OTHERS.LENGTH
+  l := r
+  REPEAT r
+    pidx := INDEXES.PLAYERS.OTHERS[l-r-1]
+    IF PLAYERS.SCORE[pidx] > 0 AND PLAYERS.SCORE[pidx] >= score AND PLAYERS.REMAINING_POWER[pidx] = 0 AND PLAYERS.REMAINING_SHIELD[pidx] = 0 AND PLAYERS.REMAINING_INACTIVE[pidx] = 0
+      isBlocked := MODULE.CALL(@CheckTeamBlock, DISTANCE_R.PLAYER[pidx])
+      IF isBlocked = 0
+        preyIndex := pidx
+        REPSTOP
+      ENDIF
+    ENDIF
+  ENDREP
+  IF preyIndex >= 0
+    oneRad := FXP.PI2/360
+    IF BEARING.PLAYER[preyIndex] <= 15*oneRad
+      WARPCHASE.ACTIVATE()
+    ENDIF
+  ENDIF
+ENDIF
+MODULE.RETURN()
+
+@Greedy:
+IF INDEXES.POINTS.LENGTH > 0
+  oneRad := FXP.PI2/360
+  IF BEARING.POINT[INDEXES.POINTS[0]] <= 15*oneRad
+    IF PLAYERS.REMAINING_POWER[MY.INDEX] > 0
+      isBlocked := MODULE.CALL(@CheckTeamBlock, DISTANCE_R.POINT[0])
+      IF isBlocked = 0
+        WARPCHASE.ACTIVATE()
+      ENDIF
+    ELSE
+      WARPCHASE.ACTIVATE()
+    ENDIF
+  ENDIF
+ENDIF
+MODULE.RETURN()
+
+@CheckTeamBlock:
+distance := MODULE.CALL.ARGS[0]
+isBlocked := 0
+r := INDEXES.PLAYERS.TEAM.LENGTH
+l := r
+REPEAT r
+  pidx := INDEXES.PLAYERS.TEAM[l-r-1]
+  IF PLAYERS.REMAINING_SHIELD[pidx] > 0 OR PLAYERS.REMAINING_INACTIVE[pidx] > 0 OR DISTANCE_R.PLAYER[pidx] >= distance
+    REPNEXT
+  ENDIF
+  IF BEARING.PLAYER[pidx] < 90
+    REPNEXT
+  ENDIF
+  isBlocked := 1
+  REPSTOP
+ENDREP
+MODULE.RETURN(isBlocked)
